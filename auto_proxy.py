@@ -211,15 +211,15 @@ if __name__ == '__main__':
         f.write(content)
         f.close()
 
-    str1 = "总共验证了 %d , 其中有效代理为 %s 个." % (len(all_ip), len(get_res_ip()))
+    str1 = "总共验证了 %d , 其中有效代理为 %s 个." % (len(all_ip), len(get_res_ip(res_file_dir)))
     logging.info(str1)
     str2 = "耗时 %s s" % (str(now - pre))
-    logging(str2)
+    logging.info(str2)
 
     nginx_proxy_upstream_file_path = "/etc/nginx/proxy_upstream.conf"
     # 像在/etc下的路径还需要root的权限去执行，应先调整好相关的权限
     # update_nginx_conf(get_res_ip(),"/home/work/liaohong/odp/webserver/conf/proxy_upstream.conf")
-    update_nginx_conf(get_res_ip(), nginx_proxy_upstream_file_path)
+    update_nginx_conf(get_res_ip(res_file_dir), nginx_proxy_upstream_file_path)
 
     # reload nginx
     # cmd = "/home/work/liaohong/odp/webserver/loadnginx.sh reload"
