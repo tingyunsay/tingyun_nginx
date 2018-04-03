@@ -3,12 +3,12 @@ auto nginx proxy switch
 
 #### nginx代理自动切换
 ##### 注意  
-###### 一
+###### 壹
 使用nginx 1.5.0以上版本最为好，因为有403自动重试，之前的版本都是没有的  
 nginx版本变更说明如下：
 
 ![啦啦啦](https://github.com/tingyunsay/tingyun_nginx/raw/master/img/version_change.png)
-##### 二
+##### 贰
 注：二中的所有配置都在nginx的根目录下
 nginx配置文件如下：
 ```text
@@ -68,13 +68,13 @@ server 115.218.219.182:9000 weight=1 max_fails=2 fail_timeout=500s;
 ......
 ｝
 ```
-##### 三
+##### 叁
 购买代理商家所提供接口的数据应该是如下格式：  
 　　xxx.xxx.xxx.xxx\n  
-　　xxx.xxx.xxx.xxx\n
+　　xxx.xxx.xxx.xxx\n  
 　　......  
 如果需要自定义切分出单个的ip地址，请修改代码中这一部分：get_notverify_ip()中的split("\n")成为你自己的文本格式即可
-##### 四
+##### 肆
 ```python
 res_file_dir = "/home/cas_docking/squid_proxy/res.txt"
 ```
