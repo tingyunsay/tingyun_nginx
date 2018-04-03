@@ -69,10 +69,10 @@ server 115.218.219.182:9000 weight=1 max_fails=2 fail_timeout=500s;
 ｝
 ```
 ##### 三
-购买代理商家所提供接口的数据应该是如下格式：
+购买代理商家所提供接口的数据应该是如下格式：  
+　　xxx.xxx.xxx.xxx\n  
 　　xxx.xxx.xxx.xxx\n
-　　xxx.xxx.xxx.xxx\n
-　　......
+　　......  
 如果需要自定义切分出单个的ip地址，请修改代码中这一部分：get_notverify_ip()中的split("\n")成为你自己的文本格式即可
 ##### 四
 ```python
