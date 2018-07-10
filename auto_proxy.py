@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 import sys
-
 reload(sys)
 sys.setdefaultencoding('utf8')
 import requests
@@ -17,6 +16,7 @@ from Queue import Queue
 import logging
 import requests
 import socket
+from config import TARGET_CONFIG
 
 # author  tingyun  2017-12-07
 
@@ -62,17 +62,33 @@ def get_res_ip(res_file_path):
 
 
 # 时间合适的写入到文件中 proxy:speed , 后续可更改策略到缓存中或者其他地方
-def test_is_goof(ip):
+def test_is_good(ip):
     proxy = ip
     # command = "curl -o /dev/null -s -w '%{time_total}' 'http://baidu.com' --connect-timeout 1.5 -m 1.5 -x {proxy}".format(proxy=proxy,time_total="{time_total}")
-    command = "curl -A \"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36\" -I -s \"http://www.happyjuzi.com\" -x%s -m1 | awk '(NR==1){if($2==200)print 1}' | wc -l" % proxy
-    res = commands.getstatusoutput(command)
+    
+    #弃用这种curl的方法，因为很多代理即便是失效的，也会返回200
+    #command = "curl -A \"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36\" -I -s \"http://www.happyjuzi.com\" -x%s -m1 | awk '(NR==1){if($2==200)print 1}' | wc -l" % proxy
+    #res = commands.getstatusoutput(command)
+    
+    #读取配置文件中相关配置，并进行访问测试
+    res = False
+    for k, v in TARGET_CONFIG.items():
+        try:
+            logging.info("当前测试站点为:%s"%k)
+            res = requests.get(v['url'],headers=v['headers'],proxies={"http":"http://%s"%proxy},timeout=6)
+        except Exception,e:
+            #一旦其中某个站点失败，置换res成False，且break
+            logging.info("站点:%s访问失败，失败原因如下:%s，此ip:%s不可用，跳出..."%(k,e,proxy))
+            res = False
+            break
+
     if proxy and len(proxy) <= 21:
         # 片段二
         # 上面返回1的，直接认为可用，后续可以添加其他网站：如xiami，163music，douban等等
         # 不再去验证了（老的策略还需要验证响应时间）
         # 测试时间命令为：curl -o /dev/null -s -w '%{time_total}' 'www.baidu.com' -x ip:port
-        if res[1] == '1':
+        if res and res.status_code==200:
+            logging.info("ip:%s可用，加入结果集中."%proxy)
             return proxy
         else:
             return None
@@ -146,7 +162,7 @@ class ThreadWorker(Thread):
             item = self.queue.get()
             if item is None:
                 break
-            RESULT.append(test_is_goof(item))
+            RESULT.append(test_is_good(item))
             self.queue.task_done()
 
 
@@ -158,8 +174,7 @@ class ThreadWorker(Thread):
 # 支持的浏览器有： chrom/IE/360/Firefox
 # 由于本地还需要做一次验证，就不取对方接口中按照速度返回的了，这个速度不是实时的速度，而是他们扫描时候获取的速度，无参考价值
 def get_kuaiurl(orderid, num, anonymous_level="an_ha", protocol=2, area="中国", method=2, sep=2, quality=1):
-    #base_url = "http://dev.kuaidaili.com/api/getproxy?b_iphone=1&"
-    base_url = "http://dev.kuaidaili.com/api/getproxy?"
+    base_url = "http://dev.kdlapi.com/api/getproxy?"
     anonymous = ""
     for i in [x for x in anonymous_level.split(";")]:
         if i:
@@ -181,9 +196,9 @@ def main(url):
 
 
 if __name__ == '__main__':
-    res_file_dir = "/home/cas_docking/squid_proxy/res.txt"
+    res_file_dir = "/home/cas_docking/squid_proxy/tingyun_nginx/res.txt"
     commands.getoutput("touch %s"%res_file_dir)
-    url = get_kuaiurl("快代理的订单号",num=2000, protocol=1, area="", method=1, quality=0)
+    url = get_kuaiurl("快代理的订单号",num=20, protocol=1, area="", method=1, quality=0)
     # 直接用url得到的ip和现有的ip得到一个去重的结果，再统一丢去认证
     all_ip = list(set(get_notverify_ip(url) + get_res_ip(res_file_dir)))
     all_ip = filter(lambda x: x, all_ip)
@@ -225,10 +240,11 @@ if __name__ == '__main__':
     # cmd = "/home/work/liaohong/odp/webserver/loadnginx.sh reload"
     cmd = "/usr/sbin/nginx -s reload"
     res = commands.getstatusoutput(cmd)
+    Date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     if res[0] == 0:
         # logging.info("odp nginx重启成功.")
-        print "tingyun nginx重启成功."
+        logging.info("%s:tingyun nginx重启成功."%Date)
     else:
         # logging.warning("odp nginx重启失败.")
-        print "tingyun nginx重启失败."
+        logging.info("%s:tingyun nginx重启失败."%Date)
 
