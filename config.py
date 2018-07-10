@@ -16,4 +16,7 @@ TARGET_CONFIG = {
         }
     }
 }
-
+#保存验证结果的文件路径，可用的ip都会先被记录到这个文件中，下次作为原料继续用来测试验证
+res_file_dir = "/home/cas_docking/squid_proxy/tingyun_nginx/res.txt"
+#程序验证完会：生成的nginx代理的文件路径
+nginx_proxy_upstream_file_path = "/etc/nginx/proxy_upstream.conf"

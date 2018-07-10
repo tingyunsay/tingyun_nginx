@@ -16,7 +16,7 @@ from Queue import Queue
 import logging
 import requests
 import socket
-from config import TARGET_CONFIG
+from config import *
 
 # author  tingyun  2017-12-07
 
@@ -196,7 +196,7 @@ def main(url):
 
 
 if __name__ == '__main__':
-    res_file_dir = "/home/cas_docking/squid_proxy/tingyun_nginx/res.txt"
+    res_file_dir = res_file_dir
     commands.getoutput("touch %s"%res_file_dir)
     url = get_kuaiurl("快代理的订单号",num=20, protocol=1, area="", method=1, quality=0)
     # 直接用url得到的ip和现有的ip得到一个去重的结果，再统一丢去认证
@@ -231,7 +231,7 @@ if __name__ == '__main__':
     str2 = "耗时 %s s" % (str(now - pre))
     logging.info(str2)
 
-    nginx_proxy_upstream_file_path = "/etc/nginx/proxy_upstream.conf"
+    nginx_proxy_upstream_file_path = nginx_proxy_upstream_file_path
     # 像在/etc下的路径还需要root的权限去执行，应先调整好相关的权限
     # update_nginx_conf(get_res_ip(),"/home/work/liaohong/odp/webserver/conf/proxy_upstream.conf")
     update_nginx_conf(get_res_ip(res_file_dir), nginx_proxy_upstream_file_path)
