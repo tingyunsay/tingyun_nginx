@@ -124,14 +124,12 @@ def update_squid_conf(kuaidaili_ip):
         f.close()
 
 
-
-
-def update_nginx_conf(kuaidaili_ip, path):
+def update_nginx_conf(result_ips, path):
     proxy_path = path
     with open(proxy_path) as f:
         content = f.read()
         f.close()
-    new_ip = kuaidaili_func.generate_nginx_content(kuaidaili_ip)
+    new_ip = kuaidaili_func.generate_nginx_content(result_ips)
     content = "upstream  proxy_upstream {\n" + new_ip + "}"
     with open(proxy_path, "wb") as f:
         f.write(content)
@@ -152,8 +150,6 @@ class ThreadWorker(Thread):
             RESULT.append(test_is_good(item))
             self.queue.task_done()
 
-
-
 def main(url):
     update_squid_conf()
 
@@ -166,7 +162,6 @@ if __name__ == '__main__':
     for k,v in API_CONFIG.items():
         if k == "kuaidaili" and v['use']:
             url = kuaidaili_func.get_kuaiurl(v['order_id'],num=20, protocol=1, area="", method=1, quality=0)
-            # 直接用url得到的ip和现有的ip得到一个去重的结果，再统一丢去认证
             all_ip = kuaidaili_func.get_notverify_ip(url) + get_res_ip(res_file_dir)
             all_ip = filter(lambda x: x, all_ip)
 
