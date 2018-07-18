@@ -17,7 +17,7 @@ import logging
 import requests
 import socket
 from config import *
-
+import kuaidaili_func
 # author  tingyun  2017-12-07
 
 file_name = __file__.split('/')[-1].replace(".py", "")
@@ -41,29 +41,28 @@ RESULT = []
 m = threading.Lock()
 
 
-# 获取未验证的ip
-def get_notverify_ip(url):
-    try:
-        content = requests.get(url).content
-    except Exception, e:
-        logging.warning("快代理接口获取失败，请检查服务")
-    kuaidaili_ip = content.split("\n")
-    return kuaidaili_ip
 
-
-# 获取验证过的res
+# 获取已经验证过的res，格式为：ip值 from
 def get_res_ip(res_file_path):
     with open("%s"%res_file_dir, "rb") as f:
         kuaidaili_ip = f.read()
         f.close()
     res = []
-    kuaidaili_ip = filter(lambda x: x, kuaidaili_ip.split("\n"))
-    return kuaidaili_ip
+    exists_ips = kuaidaili_ip.split("\n")
+    exists_ips.remove('')
+    if exists_ips != ['']:
+        map(lambda x: res.append({
+            "ip":x.split("\t")[0],
+            "from":x.split("\t")[1]
+        }), exists_ips)
+        return res
+    else:
+        return []
 
-
-# 时间合适的写入到文件中 proxy:speed , 后续可更改策略到缓存中或者其他地方
-def test_is_good(ip):
-    proxy = ip
+# 时间合适的写入到文件中 proxy\tfrom , 后续可更改策略到缓存中或者其他地方
+def test_is_good(item):
+    proxy = item['ip']
+    From = item['from']
     # command = "curl -o /dev/null -s -w '%{time_total}' 'http://baidu.com' --connect-timeout 1.5 -m 1.5 -x {proxy}".format(proxy=proxy,time_total="{time_total}")
     
     #弃用这种curl的方法，因为很多代理即便是失效的，也会返回200
@@ -89,7 +88,7 @@ def test_is_good(ip):
         # 测试时间命令为：curl -o /dev/null -s -w '%{time_total}' 'www.baidu.com' -x ip:port
         if res and res.status_code==200:
             logging.info("ip:%s可用，加入结果集中."%proxy)
-            return proxy
+            return "%s\t%s"%(proxy,From)
         else:
             return None
 
@@ -125,18 +124,6 @@ def update_squid_conf(kuaidaili_ip):
         f.close()
 
 
-# 传入的kuaidaili_ip是一个list：[ip1:port1 , ip2:port2 , ....]
-def generate_nginx_content(kuaidaili_ip):
-    update_content = ""
-    for proxy in kuaidaili_ip:
-        if proxy:
-            ip_port = proxy.split(",")[0]
-            update_content += "server {ip}:{port} weight=1 max_fails=2 fail_timeout=500s;\n".format(
-                ip=ip_port.split(":")[0],
-                port=ip_port.split(":")[1]
-            )
-
-    return update_content
 
 
 def update_nginx_conf(kuaidaili_ip, path):
@@ -144,7 +131,7 @@ def update_nginx_conf(kuaidaili_ip, path):
     with open(proxy_path) as f:
         content = f.read()
         f.close()
-    new_ip = generate_nginx_content(kuaidaili_ip)
+    new_ip = kuaidaili_func.generate_nginx_content(kuaidaili_ip)
     content = "upstream  proxy_upstream {\n" + new_ip + "}"
     with open(proxy_path, "wb") as f:
         f.write(content)
@@ -166,85 +153,67 @@ class ThreadWorker(Thread):
             self.queue.task_done()
 
 
-# anonymous_level  默认为高匿名度的代理:ha -- high 高匿 , an -- 匿名 , tr -- 透明 , 可以重叠，按照；切分，如：an_ha;an_an
-# protocol  默认为https(同时支持http)的代理，支持后续改造，两者分类取
-# area      默认不限制，我们一般不需要国外的暂时，中国
-# method    默认为支持post(同时也支持get)，后续改造，分成两类，按需取
-# sep       取得结果中的分割符号，1-\r\n, 2-\n, 3-空格, 4-|
-# 支持的浏览器有： chrom/IE/360/Firefox
-# 由于本地还需要做一次验证，就不取对方接口中按照速度返回的了，这个速度不是实时的速度，而是他们扫描时候获取的速度，无参考价值
-def get_kuaiurl(orderid, num, anonymous_level="an_ha", protocol=2, area="中国", method=2, sep=2, quality=1):
-    base_url = "http://dev.kdlapi.com/api/getproxy?"
-    anonymous = ""
-    for i in [x for x in anonymous_level.split(";")]:
-        if i:
-            anonymous += (i + "=1&")
-    url = base_url + "orderid={orderid}&num={num}&protocol={protocol}&area={area}&method={method}&{anonymous}&quality={quality}".format(
-        orderid=orderid,
-        num=num,
-        protocol=protocol,
-        area=area,
-        method=method,
-        anonymous=anonymous,
-        quality=quality,
-    )
-    return url
-
 
 def main(url):
     update_squid_conf()
 
 
 if __name__ == '__main__':
-    res_file_dir = res_file_dir
-    commands.getoutput("touch %s"%res_file_dir)
-    url = get_kuaiurl("快代理的订单号",num=20, protocol=1, area="", method=1, quality=0)
-    # 直接用url得到的ip和现有的ip得到一个去重的结果，再统一丢去认证
-    all_ip = list(set(get_notverify_ip(url) + get_res_ip(res_file_dir)))
-    all_ip = filter(lambda x: x, all_ip)
-    pre = time.time()
+    #结果文件路径
+    if commands.getstatusoutput("touch %s" % res_file_dir)[0] != 0:
+        logging.error("结果文件touch失败，请检查路径是否存在!")
+        exit()
+    for k,v in API_CONFIG.items():
+        if k == "kuaidaili" and v['use']:
+            url = kuaidaili_func.get_kuaiurl(v['order_id'],num=20, protocol=1, area="", method=1, quality=0)
+            # 直接用url得到的ip和现有的ip得到一个去重的结果，再统一丢去认证
+            all_ip = kuaidaili_func.get_notverify_ip(url) + get_res_ip(res_file_dir)
+            all_ip = filter(lambda x: x, all_ip)
 
-    queue = Queue()
-    good_id = []
-    for x in range(20):
-        worker = ThreadWorker(queue)
-        worker.daemon = True
-        worker.start()
-    
-    fuck = []
-    for task in all_ip:
-        queue.put(task)
-    queue.join()
-    now = time.time()
-    result = filter(lambda x: x, RESULT)
-    # print "有效代理共有 %s"%str(len(result))
-    with open("%s"%res_file_dir, "wb") as f:
-        content = ""
-        for i in result:
-            if i is not None and i is not '':
-                content += i + "\n"
-        f.write(content)
-        f.close()
+            pre = time.time()
 
-    str1 = "总共验证了 %d , 其中有效代理为 %s 个." % (len(all_ip), len(get_res_ip(res_file_dir)))
-    logging.info(str1)
-    str2 = "耗时 %s s" % (str(now - pre))
-    logging.info(str2)
+            queue = Queue()
+            good_id = []
+            for x in range(20):
+                worker = ThreadWorker(queue)
+                worker.daemon = True
+                worker.start()
 
-    nginx_proxy_upstream_file_path = nginx_proxy_upstream_file_path
-    # 像在/etc下的路径还需要root的权限去执行，应先调整好相关的权限
-    # update_nginx_conf(get_res_ip(),"/home/work/liaohong/odp/webserver/conf/proxy_upstream.conf")
-    update_nginx_conf(get_res_ip(res_file_dir), nginx_proxy_upstream_file_path)
+            fuck = []
+            for task in all_ip:
+                queue.put(task)
+            queue.join()
+            now = time.time()
+            result = filter(lambda x: x, RESULT)
+            with open("%s"%res_file_dir, "wb") as f:
+                content = ""
+                for i in result:
+                    if i is not None and i is not '':
+                        content += i + "\n"
+                f.write(content)
+                f.close()
 
-    # reload nginx
-    # cmd = "/home/work/liaohong/odp/webserver/loadnginx.sh reload"
-    cmd = "/usr/sbin/nginx -s reload"
-    res = commands.getstatusoutput(cmd)
-    Date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    if res[0] == 0:
-        # logging.info("odp nginx重启成功.")
-        logging.info("%s:tingyun nginx重启成功."%Date)
-    else:
-        # logging.warning("odp nginx重启失败.")
-        logging.info("%s:tingyun nginx重启失败."%Date)
+            str1 = "代理来源为：1，总共验证了 %d , 其中有效代理为 %s 个." % (len(all_ip), len(get_res_ip(res_file_dir)))
+            logging.info(str1)
+            str2 = "耗时 %s s" % (str(now - pre))
+            logging.info(str2)
+        elif k == "xundaili" and v['use']:
+            pass
+
+        nginx_proxy_upstream_file_path = nginx_proxy_upstream_file_path
+        # 像在/etc下的路径还需要root的权限去执行，应先调整好相关的权限
+        result_ips = list(set([x['ip'] for x in get_res_ip(res_file_dir)]))
+        update_nginx_conf(result_ips, nginx_proxy_upstream_file_path)
+
+        # reload nginx
+        # cmd = "/home/work/liaohong/odp/webserver/loadnginx.sh reload"
+        cmd = "/usr/sbin/nginx -s reload"
+        res = commands.getstatusoutput(cmd)
+        Date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        if res[0] == 0:
+            # logging.info("odp nginx重启成功.")
+            logging.info("%s:tingyun nginx重启成功."%Date)
+        else:
+            # logging.warning("odp nginx重启失败.")
+            logging.info("%s:tingyun nginx重启失败."%Date)
 

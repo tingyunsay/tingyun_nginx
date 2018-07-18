@@ -1,9 +1,13 @@
 # tingyun_nginx
 auto nginx proxy switch
+自动代理切换脚本，nginx正向代理配置，暂时支持的平台只有快代理，如果使用到了新的服务商，再更新对应的接口服务，做成一体化.
 
-### nginx代理自动切换
+注：
+nginx正向代理还存在一些问题：如400错误没法自动重试，使用squid则没有这个问题（但是squid也存在其他问题）
+
+## nginx代理自动切换
 ### **壹**
-使用nginx 1.5.0以上版本最为好，因为有403自动重试，之前的版本都是没有的  
+使用nginx 1.5.0以上版本最为好，因为有403失败自动重试，之前的版本都是没有的
 nginx版本变更说明如下：
 
 ![啦啦啦](https://github.com/tingyunsay/tingyun_nginx/raw/master/img/version_change.png)

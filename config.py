@@ -19,3 +19,21 @@ TARGET_CONFIG = {
 res_file_dir = "/home/cas_docking/squid_proxy/tingyun_nginx/res.txt"
 #程序验证完会：生成的nginx代理的文件路径
 nginx_proxy_upstream_file_path = "/etc/nginx/proxy_upstream.conf"
+nginx_proxy_upstream_file_path = "/home/company_gitlab/odp/webserver/conf/proxy_upstream.conf"
+
+#此处提供一致的服务商的api接口配置，只需要填入对应的参数如订单号，不需要修改主程序代码
+#若需要使用某个服务商，即可在其key值中的use值置换成1，这里我们使用kuaidaili
+API_CONFIG = {
+    "kuaidaili":{
+        "order_id":"快代理的订单号",
+        "use":1,
+        #ip来源
+        "from":1
+    },
+    "xundaili":{
+        "order_id":"讯代理的订单号",
+        "use":0,
+        "from":2
+    }
+
+}
