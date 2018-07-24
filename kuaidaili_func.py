@@ -51,16 +51,3 @@ def get_notverify_ip(url):
         res.append(temp)
     return res
 
-
-# 传入的kuaidaili_ip是一个list：[ip1:port1 , ip2:port2 , ....]
-def generate_nginx_content(kuaidaili_ip):
-    update_content = ""
-    for proxy in kuaidaili_ip:
-        if proxy:
-            ip_port = proxy.split(",")[0]
-            update_content += "server {ip}:{port} weight=1 max_fails=2 fail_timeout=500s;\n".format(
-                ip=ip_port.split(":")[0],
-                port=ip_port.split(":")[1]
-            )
-
-    return update_content

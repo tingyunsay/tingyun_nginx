@@ -18,8 +18,12 @@ TARGET_CONFIG = {
 #保存验证结果的文件路径，可用的ip都会先被记录到这个文件中，下次作为原料继续用来测试验证
 res_file_dir = "/home/cas_docking/squid_proxy/tingyun_nginx/res.txt"
 #程序验证完会：生成的nginx代理的文件路径
-nginx_proxy_upstream_file_path = "/etc/nginx/proxy_upstream.conf"
+#nginx_proxy_upstream_file_path = "/etc/nginx/proxy_upstream.conf"
 nginx_proxy_upstream_file_path = "/home/company_gitlab/odp/webserver/conf/proxy_upstream.conf"
+
+
+#squid需要替换的配置文件路径
+squid_proxy_file_path = "/etc/squid/squid.conf"
 
 #此处提供一致的服务商的api接口配置，只需要填入对应的参数如订单号，不需要修改主程序代码
 #若需要使用某个服务商，即可在其key值中的use值置换成1，这里我们使用kuaidaili

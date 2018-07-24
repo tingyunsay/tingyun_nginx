@@ -3,21 +3,20 @@
 import sys
 reload(sys)
 sys.setdefaultencoding('utf8')
-import requests
-import re
 import commands
-import time, signal
-import signal, functools
-import sys, threading
+import time
+import threading
 from multiprocessing import Pool
-import datetime
 from threading import Thread
 from Queue import Queue
 import logging
 import requests
-import socket
 from config import *
+import config
 import kuaidaili_func
+import nginx_func
+import squid_func
+
 # author  tingyun  2017-12-07
 
 file_name = __file__.split('/')[-1].replace(".py", "")
@@ -39,8 +38,6 @@ RESULT = []
 
 # 这个锁加的貌似有点瑕疵
 m = threading.Lock()
-
-
 
 # 获取已经验证过的res，格式为：ip值 from
 def get_res_ip(res_file_path):
@@ -82,59 +79,11 @@ def test_is_good(item):
             break
 
     if proxy and len(proxy) <= 21:
-        # 片段二
-        # 上面返回1的，直接认为可用，后续可以添加其他网站：如xiami，163music，douban等等
-        # 不再去验证了（老的策略还需要验证响应时间）
-        # 测试时间命令为：curl -o /dev/null -s -w '%{time_total}' 'www.baidu.com' -x ip:port
         if res and res.status_code==200:
             logging.info("ip:%s可用，加入结果集中."%proxy)
             return "%s\t%s"%(proxy,From)
         else:
             return None
-
-
-# 传入的kuaidaili_ip是一个list：[ip1:port1 , ip2:port2 , ....]
-def generate_squid_content(kuaidaili_ip):
-    update_content = ""
-    for i, proxy in enumerate(kuaidaili_ip):
-        if proxy:
-            ip_port = proxy.split(",")[0]
-            update_content += "cache_peer {ip} parent {port} 0 no-query weighted-round-robin weight=1 connect-fail-limit=2 allow-miss max-conn=5 name={ip}{name}\n".format(
-                ip=ip_port.split(":")[0],
-                port=ip_port.split(":")[1],
-                name=i,
-            )
-
-    return update_content
-
-
-# 更新squid conf文件的内容，即ip
-def update_squid_conf(kuaidaili_ip):
-    squid_content = ""
-    with open("/etc/squid/squid.conf", "rb") as f:
-        squid_content = f.read()
-        f.close()
-    proxy_group = re.findall("cache_peer \d+[\W|\w]+(?=never_direct)", squid_content)[0]
-
-    update_content = generate_squid_content(kuaidaili_ip)
-    # 将旧的内容换成新的内容，重新写入到suqid conf中
-    res = re.sub(proxy_group, update_content, squid_content)
-    with open("/etc/squid/squid.conf", "wb") as f:
-        f.write(res)
-        f.close()
-
-
-def update_nginx_conf(result_ips, path):
-    proxy_path = path
-    with open(proxy_path) as f:
-        content = f.read()
-        f.close()
-    new_ip = kuaidaili_func.generate_nginx_content(result_ips)
-    content = "upstream  proxy_upstream {\n" + new_ip + "}"
-    with open(proxy_path, "wb") as f:
-        f.write(content)
-        f.close()
-
 
 class ThreadWorker(Thread):
     def __init__(self, queue):
@@ -150,10 +99,6 @@ class ThreadWorker(Thread):
             RESULT.append(test_is_good(item))
             self.queue.task_done()
 
-def main(url):
-    update_squid_conf()
-
-
 if __name__ == '__main__':
     #结果文件路径
     if commands.getstatusoutput("touch %s" % res_file_dir)[0] != 0:
@@ -164,7 +109,6 @@ if __name__ == '__main__':
             url = kuaidaili_func.get_kuaiurl(v['order_id'],num=20, protocol=1, area="", method=1, quality=0)
             all_ip = kuaidaili_func.get_notverify_ip(url) + get_res_ip(res_file_dir)
             all_ip = filter(lambda x: x, all_ip)
-
             pre = time.time()
 
             queue = Queue()
@@ -194,21 +138,11 @@ if __name__ == '__main__':
             logging.info(str2)
         elif k == "xundaili" and v['use']:
             pass
+    #结果文件，供nginx或squid使用
+    result_ips = list(set([x['ip'] for x in get_res_ip(res_file_dir)]))
 
-        nginx_proxy_upstream_file_path = nginx_proxy_upstream_file_path
-        # 像在/etc下的路径还需要root的权限去执行，应先调整好相关的权限
-        result_ips = list(set([x['ip'] for x in get_res_ip(res_file_dir)]))
-        update_nginx_conf(result_ips, nginx_proxy_upstream_file_path)
+    #重启squid，重启时间长
+    #squid_func.reload_squid(result_ips)
 
-        # reload nginx
-        # cmd = "/home/work/liaohong/odp/webserver/loadnginx.sh reload"
-        cmd = "/usr/sbin/nginx -s reload"
-        res = commands.getstatusoutput(cmd)
-        Date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        if res[0] == 0:
-            # logging.info("odp nginx重启成功.")
-            logging.info("%s:tingyun nginx重启成功."%Date)
-        else:
-            # logging.warning("odp nginx重启失败.")
-            logging.info("%s:tingyun nginx重启失败."%Date)
-
+    #重启nginx
+    nginx_func.reload_nginx(result_ips)
