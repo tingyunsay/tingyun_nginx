@@ -37,7 +37,8 @@ API_CONFIG = {
     "xundaili":{
         "order_id":"讯代理的订单号",
         "use":0,
-        "from":2
+        "from":2,
+        "spiderid":"讯代理特有的spiderid"
     }
 
 }

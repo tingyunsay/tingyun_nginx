@@ -16,6 +16,7 @@ import config
 import kuaidaili_func
 import nginx_func
 import squid_func
+import xundali_func
 
 # author  tingyun  2017-12-07
 
@@ -109,35 +110,38 @@ if __name__ == '__main__':
             url = kuaidaili_func.get_kuaiurl(v['order_id'],num=20, protocol=1, area="", method=1, quality=0)
             all_ip = kuaidaili_func.get_notverify_ip(url) + get_res_ip(res_file_dir)
             all_ip = filter(lambda x: x, all_ip)
-            pre = time.time()
-
-            queue = Queue()
-            good_id = []
-            for x in range(20):
-                worker = ThreadWorker(queue)
-                worker.daemon = True
-                worker.start()
-
-            fuck = []
-            for task in all_ip:
-                queue.put(task)
-            queue.join()
-            now = time.time()
-            result = filter(lambda x: x, RESULT)
-            with open("%s"%res_file_dir, "wb") as f:
-                content = ""
-                for i in result:
-                    if i is not None and i is not '':
-                        content += i + "\n"
-                f.write(content)
-                f.close()
-
-            str1 = "代理来源为：1，总共验证了 %d , 其中有效代理为 %s 个." % (len(all_ip), len(get_res_ip(res_file_dir)))
-            logging.info(str1)
-            str2 = "耗时 %s s" % (str(now - pre))
-            logging.info(str2)
         elif k == "xundaili" and v['use']:
-            pass
+            #暂时设定为一次提取五个，计算下并发再看看需要多少
+            url = xundali_func.get_url(API_CONFIG['xundaili']['order_id'],API_CONFIG['xundaili']['spiderid'])
+            all_ip = xundali_func.get_notverify_ip(url) + get_res_ip(res_file_dir)
+            all_ip = filter(lambda x: x, all_ip)
+        pre = time.time()
+        queue = Queue()
+        good_id = []
+        for x in range(20):
+            worker = ThreadWorker(queue)
+            worker.daemon = True
+            worker.start()
+
+        fuck = []
+        for task in all_ip:
+            queue.put(task)
+        queue.join()
+        now = time.time()
+        result = filter(lambda x: x, RESULT)
+        with open("%s"%res_file_dir, "wb") as f:
+            content = ""
+            for i in result:
+                if i is not None and i is not '':
+                    content += i + "\n"
+            f.write(content)
+            f.close()
+
+        str1 = "代理来源为：1，总共验证了 %d , 其中有效代理为 %s 个." % (len(all_ip), len(get_res_ip(res_file_dir)))
+        logging.info(str1)
+        str2 = "耗时 %s s" % (str(now - pre))
+        logging.info(str2)
+
     #结果文件，供nginx或squid使用
     result_ips = list(set([x['ip'] for x in get_res_ip(res_file_dir)]))
 
