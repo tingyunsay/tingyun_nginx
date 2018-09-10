@@ -16,7 +16,7 @@ import config
 import kuaidaili_func
 import nginx_func
 import squid_func
-import xundali_func
+import xundaili_func
 
 # author  tingyun  2017-12-07
 
@@ -104,7 +104,7 @@ if __name__ == '__main__':
     #结果文件路径
     if commands.getstatusoutput("touch %s" % res_file_dir)[0] != 0:
         logging.error("结果文件touch失败，请检查路径是否存在!")
-        exit()
+        #exit()
     for k,v in API_CONFIG.items():
         if k == "kuaidaili" and v['use']:
             url = kuaidaili_func.get_kuaiurl(v['order_id'],num=20, protocol=1, area="", method=1, quality=0)
@@ -112,8 +112,8 @@ if __name__ == '__main__':
             all_ip = filter(lambda x: x, all_ip)
         elif k == "xundaili" and v['use']:
             #暂时设定为一次提取五个，计算下并发再看看需要多少
-            url = xundali_func.get_url(API_CONFIG['xundaili']['order_id'],API_CONFIG['xundaili']['spiderid'])
-            all_ip = xundali_func.get_notverify_ip(url) + get_res_ip(res_file_dir)
+            url = xundaili_func.get_url(API_CONFIG['xundaili']['order_id'],API_CONFIG['xundaili']['spiderid'])
+            all_ip = xundaili_func.get_notverify_ip(url) + get_res_ip(res_file_dir)
             all_ip = filter(lambda x: x, all_ip)
         pre = time.time()
         queue = Queue()

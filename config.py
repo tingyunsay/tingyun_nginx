@@ -15,8 +15,8 @@ TARGET_CONFIG = {
         }
     }
 }
-#保存验证结果的文件路径，可用的ip都会先被记录到这个文件中，下次作为原料继续用来测试验证
-res_file_dir = "/home/cas_docking/squid_proxy/tingyun_nginx/res.txt"
+#保存验证结果的文件路径，可用的ip都会先被记录到这个文件中，下次作为原料继续用来测试验证；默认使用当前路径
+res_file_dir = "./res.txt"
 #程序验证完会：生成的nginx代理的文件路径
 #nginx_proxy_upstream_file_path = "/etc/nginx/proxy_upstream.conf"
 nginx_proxy_upstream_file_path = "/home/company_gitlab/odp/webserver/conf/proxy_upstream.conf"
@@ -30,13 +30,13 @@ squid_proxy_file_path = "/etc/squid/squid.conf"
 API_CONFIG = {
     "kuaidaili":{
         "order_id":"快代理的订单号",
-        "use":1,
+        "use":0,
         #ip来源
         "from":1
     },
     "xundaili":{
         "order_id":"讯代理的订单号",
-        "use":0,
+        "use":1,
         "from":2,
         "spiderid":"讯代理特有的spiderid"
     }
