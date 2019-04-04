@@ -1,4 +1,5 @@
 # tingyun_nginx
+[![996.icu](https://img.shields.io/badge/link-996.icu-red.svg)](https://996.icu)
 自动代理切换脚本，nginx/squid正向代理配置，暂时支持的平台有  
 1.快代理  
 2.迅代理  
