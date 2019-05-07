@@ -25,7 +25,7 @@ nginx版本变更说明如下：
 注：二中的所有配置都在nginx的根目录下(需要找你本机的nginx根目录)
 nginx配置文件如下：
 ```text
-#在/etc/nginx/nginx.conf中添加如下行
+在/etc/nginx/nginx.conf中添加如下行
 
 include proxy/*.conf;
 ```

@@ -3,9 +3,10 @@
 import sys
 reload(sys)
 sys.setdefaultencoding('utf8')
+sys.path.append('../../')
 import requests
 import logging
-from config import *
+from tingyun_nginx.config import *
 
 #快代理相关方法
 
