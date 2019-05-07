@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # -*- coding:utf-8 -*-
 import sys
 reload(sys)
@@ -13,10 +13,7 @@ import logging
 import requests
 from config import *
 import config
-import kuaidaili_func
-import nginx_func
-import squid_func
-import xundaili_func
+from utils import kuaidaili_func,nginx_func,squid_func,xundaili_func
 
 # author  tingyun  2017-12-07
 
@@ -73,7 +70,7 @@ def test_is_good(item):
         try:
             logging.info("当前测试站点为:%s"%k)
             res = requests.get(v['url'],headers=v['headers'],proxies={"http":"http://%s"%proxy},timeout=6)
-        except Exception,e:
+        except Exception as e:
             #一旦其中某个站点失败，置换res成False，且break
             logging.info("站点:%s访问失败，失败原因如下:%s，此ip:%s不可用，跳出..."%(k,e,proxy))
             res = False
